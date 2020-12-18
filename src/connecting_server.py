@@ -1,5 +1,5 @@
-from zepben.cimbend.streaming import connect, connect_async, NetworkConsumerClient
-from zepben.cimbend import NetworkService, SyncNetworkConsumerClient
+from zepben.evolve.streaming import connect, connect_async, NetworkConsumerClient
+from zepben.evolve import NetworkService, SyncNetworkConsumerClient
 
 
 with connect(host="localhost", rpc_port=50051) as channel:
