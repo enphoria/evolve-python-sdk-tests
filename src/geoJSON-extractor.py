@@ -42,6 +42,7 @@ class Network:
         self.ns = ev.NetworkService()
         self.ds = ev.DiagramService()
         self.add_base_voltages()
+        self.head_eqs ={}
 
     def get_cim_class(self, gis_class):
         if self.mapping.get(gis_class):
@@ -52,6 +53,9 @@ class Network:
     def get_field_name(self, field):
         if self.config_file.get(field):
             return self.config_file[field][self.namespace]
+        else:
+            logger.error(f'Field name {field} is not on the geojson-config.json')
+            return None
 
     def add_diagram(self):
         diagram = ev.Diagram(diagram_style=ev.DiagramStyle.GEOGRAPHIC)
@@ -90,45 +94,59 @@ class Network:
                 eq.base_voltage = self.ns.get('UNKNOWN')
         else:
             raise Exception(f'GIS Class: {row[self.get_field_name("class")]} is not mapped to any Evolve Profile class')
+
+        if row[self.get_field_name('headTerminal')] == 1:
+            fdr = self.create_feeder(row)
+            self.head_eqs[eq.mrid] = fdr
         return eq
 
+    def create_feeder(self, row):
+        feeder_name = row[self.get_field_name("name")]
+        logger.info(f'Creating Feeder: {feeder_name}')
+        fdr = ev.Feeder(name=str(feeder_name))
+        self.ns.add(fdr)
+        return fdr
+
     def add_feeder(self):
-        fdr = ev.Feeder(name=self.feeder_name)
         for index, row in self.gdf.iterrows():
             loc = self.add_location(row)
             eq = self.create_equipment(row, loc)
             if eq is not None:
                 self.ns.add(eq)
-                fdr.add_equipment(eq)
-                eq.add_container(fdr)
             else:
                 logger.error(f'Equipment not mapped to a Evolve Profile class: {row[self.get_field_name("mrid")]}')
         self.connect_equipment()
-        self.ns.add(fdr)
         return self.ns
 
     def connect_equipment(self):
         gdf_b = self.gdf[self.gdf['geometry'].apply(lambda x: x.type == 'LineString')]
         for index, row in gdf_b.iterrows():
             if row[self.get_field_name('fromEq')] is not None:
-                logger.info(f'Connecting: {(row[self.get_field_name("fromEq")])} to {row[self.get_field_name("toEq")]} with acls: {row[self.get_field_name("mrid")]}')
-                eq0 = self.ns.get(mrid=str(row[self.get_field_name('mrid')]))
+                mrid_eq0 = str((row[self.get_field_name("fromEq")]))
+                mrid_eq1 = str(row[self.get_field_name("toEq")])
+                logger.info(f'Connecting: {mrid_eq0} to {mrid_eq1} with acls: {row[self.get_field_name("mrid")]}')
+                eq0 = self.ns.get(mrid=mrid_eq0)
                 t01 = ev.Terminal(conducting_equipment=eq0)
-            t02 = ev.Terminal(conducting_equipment=eq0)
-            eq0.add_terminal(t01)
-            eq0.add_terminal(t02)
-            eq1 = self.ns.get(mrid=row[self.get_field_name('fromEq')])
-            t11 = ev.Terminal(conducting_equipment=eq1)
-            eq1.add_terminal(t11)
-            eq2 = self.ns.get(mrid=row[self.get_field_name('toEq')])
-            t21 = ev.Terminal(conducting_equipment=eq2)
-            eq2.add_terminal(t21)
-            self.ns.add(t01)
-            self.ns.add(t11)
-            self.ns.add(t02)
-            self.ns.add(t21)
-            self.ns.connect_terminals(t01, t11)
-            self.ns.connect_terminals(t02, t21)
+                if mrid_eq0 in self.head_eqs:
+                    fdr = self.head_eqs[mrid_eq0]
+                    logger.info(f'Creating normal_head_terminal for Feeder: {fdr}')
+                    setattr(fdr, 'normal_head_terminal', t01)
+                    logger.info(f'normal_head_terminal: {fdr.normal_head_terminal} created.')
+                t02 = ev.Terminal(conducting_equipment=eq0)
+                eq0.add_terminal(t01)
+                eq0.add_terminal(t02)
+                eq1 = self.ns.get(mrid=row[self.get_field_name('fromEq')])
+                t11 = ev.Terminal(conducting_equipment=eq1)
+                eq1.add_terminal(t11)
+                eq2 = self.ns.get(mrid=row[self.get_field_name('toEq')])
+                t21 = ev.Terminal(conducting_equipment=eq2)
+                eq2.add_terminal(t21)
+                self.ns.add(t01)
+                self.ns.add(t11)
+                self.ns.add(t02)
+                self.ns.add(t21)
+                self.ns.connect_terminals(t01, t11)
+                self.ns.connect_terminals(t02, t21)
 
 
 async def main():

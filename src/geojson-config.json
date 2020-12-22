@@ -8,7 +8,7 @@
       "essential": "id"
     },
     "name": {
-      "evolve": "OBJECTID",
+      "evolve": "name",
       "essential": "name"
     },
   "baseVoltage": {
@@ -22,5 +22,8 @@
   "toEq": {
     "evolve": "ToEq",
     "essential": "toNode"
+  },
+  "headTerminal": {
+    "evolve": "headTerminal"
   }
 }
