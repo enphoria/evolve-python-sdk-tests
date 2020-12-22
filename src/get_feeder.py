@@ -8,11 +8,11 @@ async def main():
     async with connect_async(host="localhost", rpc_port=50052) as channel:
         service = NetworkService()
         client = NetworkConsumerClient(channel)
-        result = (await client.get_feeder(service, 'fdr1')).throw_on_error()
-        print(service.get('fdr1'))
+        result = (await client.get_feeder(service, 'CPM3B3')).throw_on_error()
+        print(service.get('CPM3B3'))
 
-        for equip in service.objects(Equipment):
-            print(equip.mrid, equip.name)
+#        for equip in service.objects(Equipment):
+#            print(equip.mrid, equip.name)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
