@@ -1,5 +1,5 @@
-import zepben.cimbend as cim
-from zepben.cimbend.streaming.connect import connect_async
+import zepben.evolve as cim
+from zepben.evolve.streaming.connect import connect_async
 import asyncio
 import argparse
 import logging
@@ -33,7 +33,7 @@ ns.connect_terminals(t2, t3)
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Zepben cimbend demo for geoJSON ingestion")
+    parser = argparse.ArgumentParser(description="Zepben cimbend demo ")
     parser.add_argument('server', help='Host and port of grpc server', metavar="host:port", nargs="?",
                         default="localhost")
     parser.add_argument('--rpc-port', help="The gRPC port for the server", default="50051")
