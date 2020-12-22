@@ -1,5 +1,5 @@
-import zepben.cimbend as cim
-from zepben.cimbend.streaming.connect import connect_async
+import zepben.evolve as cim
+from zepben.evolve.streaming import connect_async
 import asyncio
 import argparse
 import logging
