@@ -94,20 +94,18 @@ class Network:
                 eq.base_voltage = self.ns.get('UNKNOWN')
         else:
             raise Exception(f'GIS Class: {row[self.get_field_name("class")]} is not mapped to any Evolve Profile class')
-
-        if row[self.get_field_name('headTerminal')] == 1:
-            fdr = self.create_feeder(row)
-            self.head_eqs[eq.mrid] = fdr
         return eq
 
-    def create_feeder(self, row):
-        feeder_name = row[self.get_field_name("name")]
-        logger.info(f'Creating Feeder: {feeder_name}')
-        fdr = ev.Feeder(name=str(feeder_name))
-        self.ns.add(fdr)
-        return fdr
+    def create_feeders(self):
+        for index, row in self.gdf.iterrows():
+            if row[self.get_field_name('headTerminal')] == 1:
+                # self.head_eqs[eq.mrid] = fdr
+                feeder_name = row[self.get_field_name("name")]
+                logger.info(f'Creating Feeder: {feeder_name}')
+                fdr = ev.Feeder(name=str(feeder_name), mrid='fdr1')
+                self.ns.add(fdr)
 
-    def add_feeder(self):
+    def create_equipment_set(self):
         for index, row in self.gdf.iterrows():
             loc = self.add_location(row)
             eq = self.create_equipment(row, loc)
@@ -115,6 +113,15 @@ class Network:
                 self.ns.add(eq)
             else:
                 logger.error(f'Equipment not mapped to a Evolve Profile class: {row[self.get_field_name("mrid")]}')
+            fdr = self.ns.get('fdr1')
+            logger.info(f' Adding Equipment {eq.name} to {fdr}')
+            fdr.add_equipment(eq)
+            eq.add_container(fdr)
+
+
+    def create_network(self):
+        self.create_feeders()
+        self.create_equipment_set()
         self.connect_equipment()
         return self.ns
 
@@ -176,7 +183,7 @@ async def main():
         client_secret = args.client_secret
         client_id = args.client_id
     # Creates a Network
-    network = Network().add_feeder()
+    network = Network().create_network()
 
     # Connect to a local cimcap instance using credentials if provided.
     async with connect_async(host=args.server, rpc_port=args.rpc_port, conf_address=args.conf_address,
