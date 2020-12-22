@@ -1,5 +1,5 @@
 import zepben.evolve as cim
-from zepben.evolve.streaming import connect_async
+from zepben.evolve.streaming import connect_async, ProducerClient
 import asyncio
 import argparse
 import logging
@@ -70,9 +70,11 @@ async def main():
 
     # Connect to a local postbox instance using credentials if provided.
     async with connect_async(host=args.server, rpc_port=args.rpc_port, conf_address=args.conf_address,
-                             client_id=client_id, client_secret=client_secret, pkey=key, cert=cert, ca=ca) as conn:
+                             client_id=client_id, client_secret=client_secret, pkey=key, cert=cert, ca=ca) as channel:
         # Send the network to the postbox instance.
-        res = await conn.send([network])
+        client = ProducerClient(channel)
+        # Send the network to the postbox instance.
+        res = await client.send([network])
 
 
 if __name__ == "__main__":
