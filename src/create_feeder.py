@@ -1,5 +1,5 @@
 import zepben.evolve as cim
-from zepben.evolve.streaming.connect import connect_async
+from zepben.evolve.streaming import connect_async
 import asyncio
 import argparse
 import logging
