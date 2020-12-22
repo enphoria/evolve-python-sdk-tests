@@ -4,31 +4,38 @@ import asyncio
 import argparse
 import logging
 
-fdr = cim.Feeder(name='testFeeder')
-
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 ns = cim.NetworkService()
-acls1 = cim.AcLineSegment()
-ec1 = cim.EnergyConsumer(name='service_point2550056')
+acls1 = cim.AcLineSegment(name='acls1')
+ec1 = cim.EnergyConsumer(name='ec1')
+br1 = cim.Breaker(name='HeadFeeder')
 
-
+t00 = cim.Terminal(conducting_equipment=br1)
+t01 = cim.Terminal(conducting_equipment=br1)
 t1 = cim.Terminal(conducting_equipment=acls1)
 t2 = cim.Terminal(conducting_equipment=acls1)
 t3 = cim.Terminal(conducting_equipment=ec1)
 
+br1.add_terminal(t00)
+br1.add_terminal(t01)
 acls1.add_terminal(t1)
 acls1.add_terminal(t2)
 ec1.add_terminal(t3)
 
+ns.add(br1)
 ns.add(acls1)
 ns.add(ec1)
+ns.add(t00)
+ns.add(t01)
 ns.add(t1)
 ns.add(t2)
 ns.add(t3)
 
+fdr = cim.Feeder(name='testFeeder', normal_head_terminal=t00)
 ns.add(fdr)
+ns.connect_terminals(t01, t1)
 ns.connect_terminals(t2, t3)
 
 
