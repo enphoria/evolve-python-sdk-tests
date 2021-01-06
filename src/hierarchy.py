@@ -1,4 +1,5 @@
-from zepben.evolve import GeographicalRegion, SubGeographicalRegion, PowerTransformer, Feeder, Breaker, Substation, NetworkService
+from zepben.evolve import GeographicalRegion, SubGeographicalRegion, PowerTransformer, Feeder, Breaker, Substation, \
+    NetworkService
 from zepben.evolve.streaming import connect_async, ProducerClient
 import asyncio
 import argparse
@@ -10,18 +11,18 @@ logger = logging.getLogger(__name__)
 
 def create_hierarchy():
     ns = NetworkService()
-    region = GeographicalRegion()
-    sub_region = SubGeographicalRegion(geographical_region=region)
+    region = GeographicalRegion(name='Region1')
+    sub_region = SubGeographicalRegion(name='SubRegion1',geographical_region=region)
     region.add_sub_geographical_region(sub_region)
-    substation = Substation(sub_geographical_region=sub_region)
-    sub_tx = PowerTransformer()
+    substation = Substation(name='Sub1',sub_geographical_region=sub_region)
+    sub_tx = PowerTransformer(name='tx1')
     sub_tx.add_container(substation)
     substation.add_equipment(sub_tx)
-    feeder = Feeder(normal_energizing_substation=substation)
-    breaker = Breaker()
+    feeder = Feeder(name='Feeder1', normal_energizing_substation=substation)
+    breaker = Breaker(name='b1')
     breaker.add_container(feeder)
     feeder.add_equipment(breaker)
-    ## Ading all the objects to the NetworkService
+    ## Adding all the objects to the NetworkService
     ns.add(breaker)
     ns.add(feeder)
     ns.add(substation)
