@@ -8,7 +8,7 @@ from zepben.evolve import NetworkService, Equipment
 
 def print_feeder_eq(service):
     for equip in service.objects(Equipment):
-        print(equip.mrid, equip.name)
+        print(equip.mrid, equip.name, type(equip).__name__, equip.get_base_voltage())
 
 
 async def main(argv):
