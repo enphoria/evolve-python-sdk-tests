@@ -2,7 +2,7 @@ import asyncio
 import sys
 import getopt
 
-from zepben.evolve.streaming import connect_async, NetworkConsumerClient
+from zepben.evolve import connect_async, NetworkConsumerClient
 from zepben.evolve import NetworkService, Equipment
 
 
