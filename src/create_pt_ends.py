@@ -18,7 +18,6 @@ ns.add(pte1)
 ns.add(pte2)
 
 
-
 async def main():
     parser = argparse.ArgumentParser(description="Zepben cimbend demo for geoJSON ingestion")
     parser.add_argument('server', help='Host and port of grpc server', metavar="host:port", nargs="?",
@@ -48,10 +47,11 @@ async def main():
 
     # Connect to a local postbox instance using credentials if provided.
     async with cim.connect_async(host=args.server, rpc_port=args.rpc_port, conf_address=args.conf_address,
-                             client_id=client_id, client_secret=client_secret, pkey=key, cert=cert, ca=ca) as channel:
+                                 client_id=client_id, client_secret=client_secret, pkey=key, cert=cert,
+                                 ca=ca) as channel:
         # Send the network to the postbox instance.
         service = cim.NetworkService()
-        client =  cim.ProducerClient(channel)
+        client = cim.ProducerClient(channel)
         res = await client.send([ns])
 
 
