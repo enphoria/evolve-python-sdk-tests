@@ -2,7 +2,7 @@ import asyncio
 import argparse
 
 from zepben.evolve import connect_async, NetworkConsumerClient
-from zepben.evolve import NetworkService, Equipment
+from zepben.evolve import NetworkService, Terminal, ConductingEquipment, Traversal, BranchRecursiveTraversal
 
 
 async def main():
@@ -20,6 +20,11 @@ async def main():
         print(args.eq_mrid)
         eq = service.get(args.eq_mrid)
         print(f'Equipment name: {eq.name}, Base Voltage: {eq.base_voltage}')
+        print(f'Equipment Terminals:')
+        for i in range(1, eq.num_terminals()+1):
+            t: Terminal = eq.get_terminal_by_sn(i)
+            print(f'Terminal: {t}: {t.phases}')
+            t.traced_phases.add_normal()
 
 
 if __name__ == "__main__":
