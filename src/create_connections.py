@@ -1,5 +1,4 @@
-import zepben.cimbend as cim
-from zepben.cimbend.streaming.connect import connect_async
+import zepben.evolve as cim
 import asyncio
 import argparse
 import logging
@@ -101,10 +100,12 @@ async def main():
     network = ns
 
     # Connect to a local postbox instance using credentials if provided.
-    async with connect_async(host=args.server, rpc_port=args.rpc_port, conf_address=args.conf_address,
-                             client_id=client_id, client_secret=client_secret, pkey=key, cert=cert, ca=ca) as conn:
+    async with cim.connect_async(host=args.server, rpc_port=args.rpc_port, conf_address=args.conf_address,
+                             client_id=client_id, client_secret=client_secret, pkey=key, cert=cert, ca=ca) as channel:
         # Send the network to the postbox instance.
-        res = await conn.send([network])
+        service = cim.NetworkService()
+        client = cim.ProducerClient(channel)
+        res = await client.send([network])
 
 
 if __name__ == "__main__":
