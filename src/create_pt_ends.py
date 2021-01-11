@@ -12,7 +12,6 @@ pte1 = cim.PowerTransformerEnd(power_transformer=pt)
 pt.add_end(pte1)
 pte2 = cim.PowerTransformerEnd(power_transformer=pt)
 pt.add_end(pte2)
-
 ns.add(pt)
 ns.add(pte1)
 ns.add(pte2)

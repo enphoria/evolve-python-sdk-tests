@@ -31,18 +31,20 @@ def read_json_file(path):
 
 class Network:
 
-    def __init__(self, namespace='evolve'):
+    def __init__(self, path, namespace='evolve'):
         self.namespace = namespace
-        self.path = 'BasicFeeder.geojson'
+        self.path = path
+        logger.info(f'Creating Network from: {path}')
         self.geojson_file = read_json_file(self.path)
         self.mapping = read_json_file('cim-mapping.json')
         self.config_file = read_json_file('geojson-config.json')
         self.feeder_name = os.path.basename(self.path)
+        self.fdr = ev.Feeder(name='basicFeeder', mrid='basicFeeder_mrid')
+        self.headEqMrid = None
         self.gdf = gp.read_file(self.path)
         self.ns = ev.NetworkService()
         self.ds = ev.DiagramService()
         self.add_base_voltages()
-        self.head_eqs ={}
 
     def get_cim_class(self, gis_class):
         if self.mapping.get(gis_class):
@@ -53,9 +55,6 @@ class Network:
     def get_field_name(self, field):
         if self.config_file.get(field):
             return self.config_file[field][self.namespace]
-        else:
-            logger.error(f'Field name {field} is not on the geojson-config.json')
-            return None
 
     def add_diagram(self):
         diagram = ev.Diagram(diagram_style=ev.DiagramStyle.GEOGRAPHIC)
@@ -86,6 +85,18 @@ class Network:
             eq.mrid = str(row[self.get_field_name("mrid")])
             eq.name = str(row[self.get_field_name("name")])
             eq.location = loc
+            if type(eq) == ev.PowerTransformer:
+                pte1 = ev.PowerTransformerEnd(power_transformer=eq)
+                eq.add_end(pte1)
+                pte2 = ev.PowerTransformerEnd(power_transformer=eq)
+                eq.add_end(pte2)
+                self.ns.add(eq)
+                self.ns.add(pte1)
+                self.ns.add(pte2)
+                self.ns.add(eq)
+                self.ns.add(pte1)
+                self.ns.add(pte2)
+                logger.info(f'Creating PowerTranformerEnds for PowerTransfomer: {eq}')
             if row[self.get_field_name('baseVoltage')] is not None:
                 logger.info(f'Assigning BaseVoltage: {row["baseVoltage"]}')
                 eq.base_voltage = self.ns.get(row[self.get_field_name('baseVoltage')])
@@ -94,34 +105,22 @@ class Network:
                 eq.base_voltage = self.ns.get('UNKNOWN')
         else:
             raise Exception(f'GIS Class: {row[self.get_field_name("class")]} is not mapped to any Evolve Profile class')
+        self.ns.add(eq)
         return eq
 
-    def create_feeders(self):
-        for index, row in self.gdf.iterrows():
-            if row[self.get_field_name('headTerminal')] == 1:
-                # self.head_eqs[eq.mrid] = fdr
-                feeder_name = row[self.get_field_name("name")]
-                logger.info(f'Creating Feeder: {feeder_name}')
-                fdr = ev.Feeder(name=str(feeder_name), mrid='fdr1')
-                self.ns.add(fdr)
-
-    def create_equipment_set(self):
+    def add_equipment(self):
         for index, row in self.gdf.iterrows():
             loc = self.add_location(row)
             eq = self.create_equipment(row, loc)
             if eq is not None:
-                self.ns.add(eq)
+                self.fdr.add_equipment(eq)
+                eq.add_container(self.fdr)
+                if row[self.get_field_name("headTerminal")] == 1:
+                    self.headEqMrid = row[self.get_field_name("mrid")]
+                    logger.info(f'Detecting head Equipment: {self.headEqMrid}')
             else:
                 logger.error(f'Equipment not mapped to a Evolve Profile class: {row[self.get_field_name("mrid")]}')
-            fdr = self.ns.get('fdr1')
-            logger.info(f' Adding Equipment {eq.name} to {fdr}')
-            fdr.add_equipment(eq)
-            eq.add_container(fdr)
-
-
-    def create_network(self):
-        self.create_feeders()
-        self.create_equipment_set()
+        self.ns.add(self.fdr)
         self.connect_equipment()
         return self.ns
 
@@ -129,31 +128,30 @@ class Network:
         gdf_b = self.gdf[self.gdf['geometry'].apply(lambda x: x.type == 'LineString')]
         for index, row in gdf_b.iterrows():
             if row[self.get_field_name('fromEq')] is not None:
-                mrid_eq0 = str((row[self.get_field_name("fromEq")]))
-                mrid_eq1 = str(row[self.get_field_name("toEq")])
-                logger.info(f'Connecting: {mrid_eq0} to {mrid_eq1} with acls: {row[self.get_field_name("mrid")]}')
-                eq0 = self.ns.get(mrid=mrid_eq0)
+                logger.info(f'Connecting: {(row[self.get_field_name("fromEq")])} to {row[self.get_field_name("toEq")]} with acls: {row[self.get_field_name("mrid")]}')
+                eq0 = self.ns.get(mrid=str(row[self.get_field_name('mrid')]))
                 t01 = ev.Terminal(conducting_equipment=eq0)
-                if mrid_eq0 in self.head_eqs:
-                    fdr = self.head_eqs[mrid_eq0]
-                    logger.info(f'Creating normal_head_terminal for Feeder: {fdr}')
-                    setattr(fdr, 'normal_head_terminal', t01)
-                    logger.info(f'normal_head_terminal: {fdr.normal_head_terminal} created.')
-                t02 = ev.Terminal(conducting_equipment=eq0)
-                eq0.add_terminal(t01)
-                eq0.add_terminal(t02)
-                eq1 = self.ns.get(mrid=row[self.get_field_name('fromEq')])
-                t11 = ev.Terminal(conducting_equipment=eq1)
-                eq1.add_terminal(t11)
-                eq2 = self.ns.get(mrid=row[self.get_field_name('toEq')])
-                t21 = ev.Terminal(conducting_equipment=eq2)
-                eq2.add_terminal(t21)
-                self.ns.add(t01)
-                self.ns.add(t11)
-                self.ns.add(t02)
-                self.ns.add(t21)
-                self.ns.connect_terminals(t01, t11)
-                self.ns.connect_terminals(t02, t21)
+            t02 = ev.Terminal(conducting_equipment=eq0,phases=ev.PhaseCode.XY)
+            eq0.add_terminal(t01)
+            eq0.add_terminal(t02)
+            eq1 = self.ns.get(mrid=row[self.get_field_name('fromEq')])
+            t11 = ev.Terminal(conducting_equipment=eq1, phases=ev.PhaseCode.X)
+            eq1.add_terminal(t11)
+            eq2 = self.ns.get(mrid=row[self.get_field_name('toEq')])
+            t21 = ev.Terminal(conducting_equipment=eq2)
+            eq2.add_terminal(t21)
+            if eq1.mrid == self.headEqMrid and self.fdr.normal_head_terminal is None:
+                logger.info(f'Assigning head terminal to Feeder for the Equipment {eq1.mrid}')
+                setattr(self.fdr, 'normal_head_terminal', t11)
+            if eq2.mrid == self.headEqMrid and self.fdr.normal_head_terminal is None:
+                logger.info(f'Assigning head terminal to Feeder for the Equipment {eq2.mrid}')
+                setattr(self.fdr, 'normal_head_terminal', t21)
+            self.ns.add(t01)
+            self.ns.add(t11)
+            self.ns.add(t02)
+            self.ns.add(t21)
+            self.ns.connect_terminals(t01, t11)
+            self.ns.connect_terminals(t02, t21)
 
 
 async def main():
@@ -168,6 +166,8 @@ async def main():
     parser.add_argument('--ca', help='CA trust chain', default="")
     parser.add_argument('--cert', help='Signed certificate for your client', default="")
     parser.add_argument('--key', help='Private key for signed cert', default="")
+    parser.add_argument('--geojson_path', help='Path of the geojson input file',
+                        default= "../../../evolve-python-sdk-tests/src/BasicFeeder.geojson")
     args = parser.parse_args()
     ca = cert = key = client_id = client_secret = None
     if not args.client_id or not args.client_secret or not args.ca or not args.cert or not args.key:
@@ -183,7 +183,7 @@ async def main():
         client_secret = args.client_secret
         client_id = args.client_id
     # Creates a Network
-    network = Network().create_network()
+    network = Network(args.geojson_path).add_equipment()
 
     # Connect to a local cimcap instance using credentials if provided.
     async with connect_async(host=args.server, rpc_port=args.rpc_port, conf_address=args.conf_address,
