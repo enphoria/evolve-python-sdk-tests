@@ -29,7 +29,7 @@
         "Lat": "-35.2696664208097",
         "Lon": "149.10905744704937",
         "name": "Source",
-        "headTerminal": null
+        "headTerminal": 1
       }
     },
     {
@@ -78,8 +78,8 @@
         "baseVoltage": "11kV",
         "Lat": "-35.269618243614396",
         "Lon": "149.10967971954085",
-        "name": "BasicFeeder",
-        "headTerminal": 1
+        "name": "Breaker1",
+        "headTerminal": null
       }
     },
     {
