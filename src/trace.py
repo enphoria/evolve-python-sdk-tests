@@ -2,8 +2,7 @@ import asyncio
 import argparse
 
 from zepben.evolve import connect_async, NetworkConsumerClient
-from zepben.evolve import NetworkService, ConductingEquipment,  get_connected_equipment
-
+from zepben.evolve import NetworkService, ConductingEquipment, get_connected_equipment
 
 
 def queue_next_equipment(item, exclude=None):
@@ -25,10 +24,11 @@ async def main():
         for eq in service.objects(obj_type=ConductingEquipment):
             print(eq)
 
-        #trace = Traversal(queue_next=queue_next_equipment, start_item=eq, process_queue=LifoQueue(), step_actions=[log])
-        #await trace.trace()
-        #x = SetPhases()
-        #await x.run(service)
+        # trace = Traversal(queue_next=queue_next_equipment, start_item=eq, process_queue=LifoQueue(), step_actions=[log])
+        # await trace.trace()
+        # x = SetPhases()
+        # await x.run(service)
+
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
