@@ -1,10 +1,10 @@
 import asyncio
 import sys
 import getopt
-# I'm only making this comment to test a commit
+
 from zepben.evolve import connect_async, NetworkConsumerClient
 from zepben.evolve import NetworkService, Equipment
-
+# this comment is only for testing a commit
 
 def print_feeder_eq(service):
     for equip in service.objects(Equipment):
